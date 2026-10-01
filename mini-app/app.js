@@ -39,7 +39,7 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
         
-        const BACKEND_URL = "https://grutap-backend.onrender.com/api"; 
+        const BACKEND_URL = "https://grutap-server.onrender.com"; 
         
         const TRANSLATIONS = {
             ru: {

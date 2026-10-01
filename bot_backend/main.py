@@ -24,7 +24,7 @@ TESTER_IDS = [7983457700]
 YOUR_TELEGRAM_ID = None  
 CHANNEL_RU = "@robuxtap_ru"
 CHANNEL_SNG = "@robuxtap_sng"
-WEB_APP_URL = "https://grubot.vercel.app/"
+WEB_APP_URL = "https://vercel.com/07810868436g-5373s-projects/grutap-app-mini-app/5KUMFBu5r2WAopf55yVs2smAYu7e"
 
 SPONSOR_CHANNELS = {
     1: "@grusponsors",
