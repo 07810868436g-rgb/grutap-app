@@ -19,7 +19,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # --- БЕЛЫЙ СПИСОК АДМИНОВ ---
-TESTER_IDS = [7983457700]
+TESTER_IDS = [6158041090]
 
 YOUR_TELEGRAM_ID = None  
 CHANNEL_RU = "@robuxtap_ru"
