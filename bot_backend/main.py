@@ -283,9 +283,11 @@ async def turbine_claim_api(request):
             return web.json_response({"error": "Превышен лимит добычи!"}, status=400)
 
         async with db_pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT turbine_charges, last_turbine_date, bonus_balance FROM users WHERE user_id = $1", user_id)
+            row = await conn.fetchrow("SELECT turbine_charges, last_turbine_date, bonus_balance, current_room_level FROM users WHERE user_id = $1", user_id)
             if not row: return web.json_response({"error": "User not found"}, status=404)
-            
+            if row['current_room_level'] < 1:
+                return web.json_response({"error": "Нужна Стартовая студия!"}, status=400)
+
             charges = row['turbine_charges'] if row['turbine_charges'] is not None else max_charges
             last_date = row['last_turbine_date']
             
@@ -319,9 +321,11 @@ async def pvp_result_api(request):
         if bet < 100: return web.json_response({"error": "Минимальная ставка 100 $ROB!"}, status=400)
 
         async with db_pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT taps_balance, bonus_balance FROM users WHERE user_id = $1", user_id)
+            row = await conn.fetchrow("SELECT taps_balance, bonus_balance, current_room_level FROM users WHERE user_id = $1", user_id)
             if not row: return web.json_response({"error": "User not found"}, status=404)
-            
+            if row['current_room_level'] < 3:
+                return web.json_response({"error": "Нужен Кибер-люкс!"}, status=400)
+
             taps_bal = row['taps_balance']
             bonus_bal = row['bonus_balance']
             total_bal = taps_bal + bonus_bal
@@ -361,10 +365,13 @@ async def buy_api(request):
                 total_balance = taps_bal + bonus_bal; cost = 0; column_to_update = ""; new_value = 0
 
                 if buy_type == "tech":
+                    current_room_level = int(user_db['current_room_level'] or 0)
+                    max_allowed_level = 3 if current_room_level == 0 else 5 if current_room_level == 1 else 7 if current_room_level == 2 else 10
                     item_id = data.get("item_id")
                     if item_id == "multitap": cost = get_upgrade_cost(2000, int(user_db['multitap_level'] or 1)); column_to_update = "multitap_level"; new_value = int(user_db['multitap_level'] or 1) + 1
                     elif item_id == "energy": cost = get_upgrade_cost(2000, int(user_db['max_energy_level'] or 1)); column_to_update = "max_energy_level"; new_value = int(user_db['max_energy_level'] or 1) + 1
                     elif item_id == "bot": cost = get_upgrade_cost(5000, int(user_db['bot_level'] or 0)); column_to_update = "bot_level"; new_value = int(user_db['bot_level'] or 0) + 1
+                    if new_value > max_allowed_level: return web.json_response({"error": "Достигнут лимит прокачки для текущей комнаты!"}, status=400)
 
                 elif buy_type == "skin":
                     item_id = data.get("item_id")
@@ -472,6 +479,12 @@ async def create_squad_api(request):
         user_data = validate_telegram_data(data.get("initData"), BOT_TOKEN)
         if not user_data: return web.json_response({"error": "Unauthorized"}, status=401)
         channel_username = data.get("channel", "").strip(); user_id = user_data.get("id")
+        async with db_pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT current_room_level FROM users WHERE user_id = $1", user_id)
+            if not row: return web.json_response({"error": "User not found"}, status=404)
+            if row['current_room_level'] < 2:
+                return web.json_response({"error": "Нужен Офис!"}, status=400)
+
         if not channel_username.startswith("@"): channel_username = "@" + channel_username
         try:
             member = await bot.get_chat_member(chat_id=channel_username, user_id=user_id)

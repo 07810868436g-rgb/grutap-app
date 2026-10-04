@@ -105,8 +105,9 @@
                 const key = el.getAttribute('data-i18n');
                 if (dict[key]) el.innerText = dict[key];
             });
-            renderArtifacts(); 
-            renderArenaStyles(); 
+            renderArtifacts();
+            renderArenaStyles();
+            updateFeatureLocks();
         }
 
         function toggleLanguage() {
@@ -278,12 +279,39 @@
             setTimeout(() => { document.getElementById('globalOverlay').style.display = 'none'; }, 300);
         }
 
+        function updateFeatureLocks() {
+            const turbineButton = document.querySelector('button[onclick="startAudioTurbine()"]');
+            const squadButton = document.querySelector('button[onclick="showCreateSquadModal()"]');
+            const pvpButton = document.querySelector('button[onclick="openPvPModal()"]');
+
+            if (turbineButton) {
+                const isLocked = currentRoomLevel < 1;
+                turbineButton.classList.toggle('locked-feature', isLocked);
+                turbineButton.innerText = isLocked ? "🔒 Нужна Стартовая студия" : "Запустить Турбину 🚀";
+            }
+
+            if (squadButton) {
+                const isLocked = currentRoomLevel < 2;
+                squadButton.classList.toggle('locked-feature', isLocked);
+                squadButton.innerText = isLocked
+                    ? "🔒 Нужен Офис (Ур. 2)"
+                    : (TRANSLATIONS[currentLang]?.topSquadBtn || TRANSLATIONS.ru.topSquadBtn);
+            }
+
+            if (pvpButton) {
+                const isLocked = currentRoomLevel < 3;
+                pvpButton.classList.toggle('locked-feature', isLocked);
+                pvpButton.innerText = isLocked ? "🔒 Нужен Кибер-люкс (Ур. 3)" : "⚔️ Арена Дуэлей";
+            }
+        }
+
         function updateStudioVisuals() {
             let bgElement = document.getElementById('mainStudioBg');
-            if (currentRoomLevel === 0) { bgElement.style.backgroundImage = `url('${BASE_ROOM_BG}')`; } 
+            if (currentRoomLevel === 0) { bgElement.style.backgroundImage = `url('${BASE_ROOM_BG}')`; }
             else { let room = ROOM_LEVELS.find(r => r.level === currentRoomLevel); if (room) bgElement.style.backgroundImage = `url('${room.bgImg}')`; }
             let income = ROOM_LEVELS.find(r => r.level === currentRoomLevel)?.income || 0;
             document.getElementById('studioIncomeTotal').innerText = income.toLocaleString('ru-RU');
+            updateFeatureLocks();
         }
 
         function openStudioShop() { document.getElementById('shopSheetOverlay').style.display = 'block'; setTimeout(() => { document.getElementById('shopSheetOverlay').style.opacity = '1'; document.getElementById('shopSheet').classList.add('open'); }, 10); renderShopItems(); }
@@ -322,9 +350,14 @@
 
         function openTechModal(type) {
             const title = document.getElementById('techModalTitle'); const desc = document.getElementById('techModalDesc'); const icon = document.getElementById('techModalIcon'); const current = document.getElementById('techModalCurrent'); const next = document.getElementById('techModalNext'); const btn = document.getElementById('techModalBuyBtn');
+            const maxAllowedLevel = currentRoomLevel === 0 ? 3 : currentRoomLevel === 1 ? 5 : currentRoomLevel === 2 ? 7 : 10;
+            const currentBoostLevel = type === 'multitap' ? multitapLevel : type === 'energy' ? maxEnergyLevel : autoBotLevel;
             if (type === 'multitap') { icon.innerText = "👆"; title.innerText = currentLang === 'en' ? 'Multitap' : "Мультитап"; desc.innerText = currentLang === 'en' ? 'Increases earn per tap.' : "Увеличивает добычу за 1 тап."; current.innerText = `+${multitapLevel}`; next.innerText = `+${multitapLevel + 1}`; btn.innerText = `${currentLang === 'en' ? 'Upgrade' : 'Прокачать'} • ${getUpgradeCost(2000, multitapLevel).toLocaleString('ru-RU')} $ROB`; } 
             else if (type === 'energy') { icon.innerText = "🔋"; title.innerText = currentLang === 'en' ? 'Energy Capacity' : "Энергоемкость"; desc.innerText = currentLang === 'en' ? 'Increases max energy limit.' : "Увеличивает запас энергии."; current.innerText = `${maxEnergy}`; next.innerText = `${1000 + (maxEnergyLevel * 500)}`; btn.innerText = `${currentLang === 'en' ? 'Upgrade' : 'Прокачать'} • ${getUpgradeCost(2000, maxEnergyLevel).toLocaleString('ru-RU')} $ROB`; } 
             else if (type === 'bot') { icon.innerText = "🤖"; title.innerText = currentLang === 'en' ? 'Auto-Bot' : "Авто-Бот"; desc.innerText = currentLang === 'en' ? 'Gathers passive income while offline (max 3h).' : "Студия приносит доход пока вы офлайн (макс 3 часа)."; current.innerText = `+${autoBotLevel}/sec`; next.innerText = `+${autoBotLevel + 1}/sec`; let cost = autoBotLevel === 0 ? 5000 : getUpgradeCost(5000, autoBotLevel + 1); btn.innerText = `${autoBotLevel === 0 ? (currentLang === 'en' ? 'Buy Bot' : 'Купить бота') : (currentLang === 'en' ? 'Upgrade' : 'Прокачать')} • ${cost.toLocaleString('ru-RU')} $ROB`; }
+            if (currentBoostLevel >= 10) { btn.innerText = "🔒 MAX Уровень"; btn.disabled = true; btn.style.background = "var(--panel-border)"; btn.style.color = "var(--text-muted)"; }
+            else if (currentBoostLevel >= maxAllowedLevel) { btn.innerText = `🔒 Нужна комната Ур. ${currentRoomLevel + 1}`; btn.disabled = true; btn.style.background = "var(--panel-border)"; btn.style.color = "var(--text-muted)"; }
+            else { btn.disabled = false; btn.style.background = ''; btn.style.color = ''; }
             btn.onclick = () => { processPurchase(() => buyTechBoost(type, btn)); }; document.getElementById('techModal').style.display = 'flex';
         }
         function closeTechModal() { document.getElementById('techModal').style.display = 'none'; }
